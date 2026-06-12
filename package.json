@@ -1,0 +1,6 @@
+{
+  "name": "calorie-checker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "写真からカロリーを推定するシンプルなアプリ"
+}

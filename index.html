@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カロリーチェッカー</title>
+<style>
+  body {
+    font-family: sans-serif;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #fafafa;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.4em;
+  }
+  #preview {
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    margin: 10px 0;
+    border-radius: 8px;
+    display: none;
+  }
+  input[type="file"] {
+    display: block;
+    margin: 10px 0;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    font-size: 1em;
+    background: #ff7043;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button:disabled {
+    background: #ccc;
+  }
+  #result {
+    margin-top: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    min-height: 50px;
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+  #loading {
+    text-align: center;
+    color: #888;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<h1>🍰 写真でカロリーチェック</h1>
+
+<input type="file" id="fileInput" accept="image/*" capture="environment">
+<img id="preview" src="" alt="プレビュー">
+<button id="analyzeBtn" disabled>このお菓子を解析する</button>
+
+<div id="loading">解析中です…少々お待ちください</div>
+<div id="result"></div>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const preview = document.getElementById('preview');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const resultDiv = document.getElementById('result');
+const loadingDiv = document.getElementById('loading');
+
+let base64Image = null;
+let mediaType = null;
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  mediaType = file.type;
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const dataUrl = event.target.result;
+    preview.src = dataUrl;
+    preview.style.display = 'block';
+    base64Image = dataUrl.split(',')[1];
+    analyzeBtn.disabled = false;
+    resultDiv.textContent = '';
+  };
+  reader.readAsDataURL(file);
+});
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!base64Image) return;
+
+  analyzeBtn.disabled = true;
+  loadingDiv.style.display = 'block';
+  resultDiv.textContent = '';
+
+  try {
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: base64Image,
+        mediaType: mediaType
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('サーバーエラー: ' + response.status);
+    }
+
+    const data = await response.json();
+    resultDiv.textContent = data.result;
+
+  } catch (err) {
+    resultDiv.textContent = 'エラーが発生しました: ' + err.message;
+  } finally {
+    loadingDiv.style.display = 'none';
+    analyzeBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>
